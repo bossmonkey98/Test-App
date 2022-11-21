@@ -1,4 +1,4 @@
-import {StyleSheet, View, Text, TouchableOpacity } from 'react-native'
+import {StyleSheet, View, Text, TouchableOpacity ,TextInput } from 'react-native'
 import React from 'react'
 import { useAppDispatch, useAppSelector } from '../Hooks/Hooks'
 import { setAnswer } from '../Features/quizDataSlice'
@@ -8,12 +8,16 @@ import { ScreenParamTypes } from '../App'
 import DragAndDrop from "volkeno-react-native-drag-drop";
 
 const Question = () => {
-  const {Questions} = useAppSelector((state)=>state.userData)
+  const {Questions , userDetails} = useAppSelector((state)=>state.userData)
   const [quesNo , setQuesNo] = React.useState<number>(0)
+  const [text , setText] = React.useState<any>('')
   const dispatch = useAppDispatch()
   const navigator = useNavigation<NativeStackNavigationProp<ScreenParamTypes,'Questions'>>()
   return (
     <View style={styles.container}>
+      {
+        // chips
+      }
       <View style={styles.chipsWrapper}>
         {Questions.map((i:any)=>
         <TouchableOpacity style={i.id === quesNo+1 ?styles.activeChip:i.answered?styles.answeredChip:styles.chip} key={i.id} onPress={()=>{
@@ -22,13 +26,13 @@ const Question = () => {
           <Text style={styles.textStyle}>{i.id}</Text>
           </TouchableOpacity>)}
       </View>
-      {!Questions[quesNo].match?
+      {Questions[quesNo].type === 'others' &&
       <View style={styles.qWrapper}>
         <Text style={styles.header}>Question {Questions[quesNo].id}</Text>
         <Text style={styles.question}>{Questions[quesNo].question}</Text>
         {Questions[quesNo].options.map((option:any)=>
           <TouchableOpacity  key={option.id} style={
-            Questions[quesNo].selectedAnswer.length === 0?styles.option:Questions[quesNo].selectedAnswer === option ? styles.selectedOption :styles.unSelected
+            Questions[quesNo].selectedAnswer === option ? styles.selectedOption :styles.option
           } onPress={()=>{
             dispatch(setAnswer({id:quesNo,selectedAnswer:option,score:Questions[quesNo].answer === option?1:0}))
             if(quesNo !== 4)setQuesNo(quesNo+1)
@@ -36,7 +40,27 @@ const Question = () => {
             <Text style={styles.textStyle}>{option}</Text>
           </TouchableOpacity>
           )}
-      </View>:
+      </View>}
+      {
+        // Question type Multiple Correct Answer
+      Questions[quesNo].type === 'multi' &&
+      <View style={styles.qWrapper}>
+        <Text style={styles.header}>Question {Questions[quesNo].id}</Text>
+        <Text style={styles.question}>{Questions[quesNo].question}</Text>
+        {Questions[quesNo].options.map((option:any)=>
+          <TouchableOpacity  key={option.id} style={
+            Questions[quesNo].selectedAnswer.includes(option) ? styles.selectedOption :styles.option
+          } onPress={()=>{
+            dispatch(setAnswer({id:quesNo,selectedAnswer:option}))
+            
+          }}>
+            <Text style={styles.textStyle}>{option}</Text>
+          </TouchableOpacity>
+          )}
+      </View>}
+      {
+        //Question type 'Match The Following'
+      Questions[quesNo].type === 'matchTheFollowing' &&
       <View style={{flex:1}}>
         <Text style={styles.header}>Question {Questions[quesNo].id}</Text>
         <Text style={{fontSize:18,alignSelf:'center',marginTop:10}}>Drag the following option to the empty column</Text>
@@ -82,23 +106,44 @@ const Question = () => {
         );
       }}
     /></View>}
+    {
+    //Question type 'Fill In The Blanks'
+    Questions[quesNo].type ==='fillBlanks' && 
+    <View style={styles.qWrapper}>
+      <Text style={styles.header}>Question {Questions[quesNo].id}</Text>
+        <Text style={styles.question}>{Questions[quesNo].question}</Text>
+        <TextInput style={styles.inputStyle} placeholder='type your answer here ...' value={Questions[quesNo].selectedAnswer} onChangeText=
+        {(i)=>
+        dispatch(setAnswer({id:quesNo,selectedAnswer:i}))
+        }/>
+      </View>}
+      {
+        // Question access buttons
+      }
       <View style={styles.btnContainer}>
         {quesNo + 1 > 1 &&
         <TouchableOpacity style={styles.btn} onPress={()=>{
           setQuesNo(quesNo-1)
         }}>
-          <Text style={styles.textStyle}>Prev</Text>
+          <Text style={styles.textStyle}>
+            {userDetails.language === "English" && "Previous"}
+          {userDetails.language === "French" && "Précédente"}
+          {userDetails.language === "German" && "Zurück"}</Text>
         </TouchableOpacity>}
         {quesNo + 1 !== 5?
         <TouchableOpacity style={styles.btn} onPress={()=>{
           setQuesNo(quesNo+1)
         }}>
-          <Text style={styles.textStyle}>Next</Text>
+          <Text style={styles.textStyle}>{userDetails.language === "English" && "Next"}
+          {userDetails.language === "French" && "Prochaine"}
+          {userDetails.language === "German" && "Nächste"}</Text>
         </TouchableOpacity>:
         <TouchableOpacity style={styles.btn} onPress={()=>{
           null
         }}>
-          <Text style={styles.textStyle} onPress={()=>navigator.navigate('Result')}>Submit</Text>
+          <Text style={styles.textStyle} onPress={()=>navigator.navigate('Result')}>{userDetails.language === "English" && "Submit"}
+          {userDetails.language === "French" && "Soumettre"}
+          {userDetails.language === "German" && "Einreichen"}</Text>
         </TouchableOpacity>
         }
       </View>
@@ -192,8 +237,17 @@ const styles = StyleSheet.create({
     justifyContent:'space-between',
     marginBottom:32,
   },
+   inputStyle:{
+        margin:8,
+        borderWidth:0.6,
+        borderColor:'blue',
+        borderRadius:10,
+        height:50,
+        padding:10,
+        fontSize:18,
+    },
   btn:{
-    width:80,
+    width:100,
     height:50,
     backgroundColor:'teal',
     justifyContent:'center',
